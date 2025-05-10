@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/views/CadastroPage.dart';
-import '../views/login.dart';
+import './view/CadastroPage.dart';
 
 void main() {
   runApp(const MaterialApp(

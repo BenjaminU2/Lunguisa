@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login.dart'; // Certifique-se de que esse caminho está correto
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -8,7 +9,6 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
-
   final TextEditingController nomeController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
@@ -22,7 +22,6 @@ class _CadastroPageState extends State<CadastroPage> {
       return;
     }
 
-    // Aqui você pode adicionar lógica de envio para API/Firebase/etc.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Cadastro realizado com sucesso!')),
     );
@@ -31,122 +30,123 @@ class _CadastroPageState extends State<CadastroPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          // Cabeçalho
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height / 2.5,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFFE0E0E0),
-                ],
-              ),
-              borderRadius: BorderRadius.only(
-                bottomRight: Radius.circular(90),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const <Widget>[
-                Spacer(),
-                Align(
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.app_registration,
-                    size: 90,
-                    color: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              // Cabeçalho
+              Container(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height / 2.8,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF43A047), Color(0xFFE0E0E0)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(90),
                   ),
                 ),
-                Spacer(),
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: 32, left: 32),
-                    child: Text(
-                      'Cadastro',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Formulário
-          Container(
-            padding: const EdgeInsets.only(top: 62),
-            child: Column(
-              children: <Widget>[
-                _buildTextField(context, icon: Icons.person, hint: 'Nome completo', controller: nomeController),
-                _buildTextField(context, icon: Icons.email, hint: 'Email', controller: emailController),
-                _buildTextField(context, icon: Icons.vpn_key, hint: 'Senha', controller: senhaController, obscure: true),
-                _buildTextField(context, icon: Icons.lock_outline, hint: 'Confirmar senha', controller: confirmarSenhaController, obscure: true),
-
-                const SizedBox(height: 40),
-
-                // Botão de Cadastrar
-                GestureDetector(
-                  onTap: _cadastrar,
-                  child: Container(
-                    height: 50,
-                    width: MediaQuery.of(context).size.width / 1.2,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF43A047), Color(0xFFE0E0E0)],
-                      ),
-                      borderRadius: BorderRadius.all(Radius.circular(50)),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'CADASTRAR',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const <Widget>[
+                    Spacer(),
+                    Icon(Icons.app_registration, size: 90, color: Colors.white),
+                    Spacer(),
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 32, left: 32),
+                        child: Text(
+                          'Cadastro',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 32),
 
-                // Link para login
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Text(
-                    'Já tenho conta',
-                    style: TextStyle(
-                      color: Colors.blueAccent,
-                      decoration: TextDecoration.underline,
+              // Formulário
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: <Widget>[
+                    _buildTextField(icon: Icons.person, hint: 'Nome completo', controller: nomeController),
+                    _buildTextField(icon: Icons.email, hint: 'Email', controller: emailController),
+                    _buildTextField(icon: Icons.vpn_key, hint: 'Senha', controller: senhaController, obscure: true),
+                    _buildTextField(icon: Icons.lock_outline, hint: 'Confirmar senha', controller: confirmarSenhaController, obscure: true),
+
+                    const SizedBox(height: 32),
+
+                    // Botão de Cadastrar
+                    GestureDetector(
+                      onTap: _cadastrar,
+                      child: Container(
+                        height: 50,
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF43A047), Color(0xFFE0E0E0)],
+                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(50)),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'CADASTRAR',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(height: 16),
+
+                    // Link para login
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Login()),
+                        );
+                      },
+                      child: const Text(
+                        'Já tenho conta',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(BuildContext context,
-      {required IconData icon,
-        required String hint,
-        required TextEditingController controller,
-        bool obscure = false}) {
+  Widget _buildTextField({
+    required IconData icon,
+    required String hint,
+    required TextEditingController controller,
+    bool obscure = false,
+  }) {
     return Container(
-      width: MediaQuery.of(context).size.width / 1.2,
       height: 50,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: Colors.white,
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 5),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
       ),
       child: TextField(
         controller: controller,
