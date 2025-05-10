@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:projecto/view/TelaCadastroProblema.dart';
+import 'package:untitled/views/CadastroPage.dart';
+import '../views/login.dart';
 
 void main() {
-  runApp(TelaCadastroProblema());
+  runApp(const MaterialApp(
+    home: CadastroPage()),
+  );
 }
