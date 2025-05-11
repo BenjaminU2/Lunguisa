@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:projecto/view/CadastroPage.dart';
-
 import 'TelaCadastroProblema.dart';
 
 class Login extends StatelessWidget {
@@ -140,7 +139,7 @@ class Login extends StatelessWidget {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => UrbanProblemsApp()
+                              builder: (context) => ProblemReportPage()
                           ),
                         );
                       } else {

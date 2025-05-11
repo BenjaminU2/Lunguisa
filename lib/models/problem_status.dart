@@ -1,0 +1,1 @@
+enum ProblemStatus { pendente, resolvido }
