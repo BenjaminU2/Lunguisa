@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:projecto/view/CadastroPage.dart';
 
-
-import 'CadastroPage.dart';
+import 'TelaCadastroProblema.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Controladores para os campos de texto
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
     return Scaffold(
       body: Column(
         children: <Widget>[
@@ -82,8 +86,9 @@ class Login extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const TextField(
-                    decoration: InputDecoration(
+                  child: TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
                       icon: Icon(Icons.email, color: Colors.grey),
                       hintText: 'Email',
                       border: InputBorder.none,
@@ -107,9 +112,10 @@ class Login extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const TextField(
+                  child: TextField(
+                    controller: passwordController,
                     obscureText: true,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       icon: Icon(Icons.vpn_key, color: Colors.grey),
                       hintText: 'Password',
                       border: InputBorder.none,
@@ -121,31 +127,70 @@ class Login extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 // Botão de login
-                Container(
-                  height: 50,
+                SizedBox(
                   width: MediaQuery.of(context).size.width / 1.2,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF43A047),
-                        Color(0xFFE0E0E0),
-                      ],
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final email = emailController.text.trim();
+                      final password = passwordController.text.trim();
+
+                      if (email == 'benjaminutui@gmail.com' && password == 'BenjaminUtui') {
+                        // Credenciais corretas - navegar para UrbanProblemsApp
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => UrbanProblemsApp()
+                          ),
+                        );
+                      } else {
+                        // Credenciais incorretas - mostrar mensagem de erro
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Email ou senha incorretos'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ).merge(
+                      ButtonStyle(
+                        overlayColor: MaterialStateProperty.resolveWith<Color>(
+                              (states) => Colors.transparent,
+                        ),
+                      ),
                     ),
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(50),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'LOGIN',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF43A047),
+                            Color(0xFFE0E0E0),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 88.0, minHeight: 50.0),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-
 
                 // Link para cadastro
                 const SizedBox(height: 16),
@@ -154,7 +199,7 @@ class Login extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const CadastroPage(),
+                          builder: (context) => CadastroPage(),
                       ),
                     );
                   },
