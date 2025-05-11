@@ -198,7 +198,7 @@ class Login extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => CadastroPage(),
+                          builder: (context) => UrbanProblemsApp(),
                       ),
                     );
                   },
