@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- PERMISSÕES DE LOCALIZAÇÃO ADICIONADAS AQUI -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O aplicativo precisa acessar sua localização para preencher automaticamente o endereço ao reportar problemas</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O aplicativo precisa acessar sua localização em segundo plano para notificá-lo sobre problemas próximos</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>O aplicativo precisa acessar sua localização em segundo plano para notificá-lo sobre problemas próximos</string>
 </dict>
 </plist>

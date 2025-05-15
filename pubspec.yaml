@@ -16,6 +16,8 @@ dependencies:
   sqflite: ^2.3.0
   path_provider: ^2.1.1
   intl: ^0.18.1
+  appwrite: ^15.0.2
+  geocoding: ^2.1.1
 
 
 dev_dependencies:
