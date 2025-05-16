@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_cliente.dart';
 import 'HomePage.dart';
+import 'CadastroPage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,10 +38,11 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(
-              client: AppwriteClient.client,
-              userId: user.$id,
-            ),
+            builder: (context) =>
+                HomePage(
+                  client: AppwriteClient.client,
+                  userId: user.$id,
+                ),
           ),
         );
       }
@@ -65,123 +67,146 @@ class _LoginPageState extends State<LoginPage> {
 
 
   @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.report_problem,
-                  size: 100,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Reporte de Problemas',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
+      body: Column(
+        children: [
+          // Barra azul do topo
+          Container(
+            height: 280,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.blue[800],
+              borderRadius: const BorderRadius.only(
+                bottomRight: Radius.circular(100),
+              ),
+            ),
+            padding: const EdgeInsets.only(top: 40),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.login,
+                    size: 60,
+                    color: Colors.white,
                   ),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'E-mail',
-                    prefixIcon: Icon(Icons.email, color: Colors.green),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira seu e-mail';
-                    }
-                    if (!value.contains('@')) {
-                      return 'E-mail inválido';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Senha',
-                    prefixIcon: const Icon(Icons.lock, color: Colors.green),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: Colors.green,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira sua senha';
-                    }
-                    if (value.length < 6) {
-                      return 'Senha deve ter pelo menos 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      'Entrar',
-                      style: TextStyle(fontSize: 18),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Login',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    // Navegar para tela de cadastro
-                    Navigator.pushNamed(context, '/cadastro');
-                  },
-                  child: const Text(
-                    'Não tem uma conta? Cadastre-se',
-                    style: TextStyle(color: Colors.green),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        //hintText: 'Ex: joao@email.com',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email, color: Colors.blue),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira seu e-mail';
+                        }
+                        if (!value.contains('@')) {
+                          return 'E-mail inválido';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Senha',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock, color: Colors.blue),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.blue,
+                          ),
+                          onPressed: () {
+                            setState(() =>
+                            _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira sua senha';
+                        }
+                        if (value.length < 6) {
+                          return 'Senha deve ter pelo menos 6 caracteres';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[800],
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                            color: Colors.white)
+                            : const Text(
+                          'ENTRAR',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CadastroPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Não tem uma conta? Cadastre-se',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
