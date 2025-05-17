@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'appwrite_cliente.dart';
 import 'HomePage.dart';
+import 'UserHomePage.dart';
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});

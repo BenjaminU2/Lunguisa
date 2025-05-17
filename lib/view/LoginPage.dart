@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import 'appwrite_cliente.dart';
 import 'HomePage.dart';
 import 'CadastroPage.dart';
+import 'UserHomePage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,26 +32,21 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       // Obtém os dados do usuário
+      // Obtém os dados do usuário
       final user = await AppwriteClient.account.get();
 
-      // Navega para a HomePage
+      // Navega para a UserHomePage
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) =>
-                HomePage(
-                  client: AppwriteClient.client,
-                  userId: user.$id,
-                ),
-          ),
+          MaterialPageRoute(builder: (context) => const UserHomePage()),
         );
       }
     } on AppwriteException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro no login: ${e.message}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro no login: ${e.message}')));
       }
     } catch (e) {
       if (mounted) {
@@ -64,7 +60,6 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -86,11 +81,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.login,
-                    size: 60,
-                    color: Colors.white,
-                  ),
+                  const Icon(Icons.login, size: 60, color: Colors.white),
                   const SizedBox(height: 16),
                   const Text(
                     'Login',
@@ -146,8 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                             color: Colors.blue,
                           ),
                           onPressed: () {
-                            setState(() =>
-                            _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                         ),
                       ),
@@ -170,17 +162,19 @@ class _LoginPageState extends State<LoginPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[800],
                         ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                            color: Colors.white)
-                            : const Text(
-                          'ENTRAR',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child:
+                            _isLoading
+                                ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                                : const Text(
+                                  'ENTRAR',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                       ),
                     ),
                     const SizedBox(height: 20),
