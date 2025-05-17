@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'appwrite_cliente.dart';
 import 'LoginPage.dart';
+import 'ProfilePage.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -136,7 +137,13 @@ class UserHomePage extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.person, color: Colors.white),
                             onPressed: () {
-                              // abrir perfil futuramente
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                  builder: (context) => const ProfilePage(userId: 'current'),
+                                  )
+                              );
+
                             },
                           ),
                           IconButton(
