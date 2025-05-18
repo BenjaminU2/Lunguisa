@@ -9,6 +9,13 @@ class AppwriteClient {
   static Account get account => Account(_client);
   static Databases get databases => Databases(_client);
   static Storage get storage => Storage(_client);
-
+  static Future<bool> isSessionActive() async {
+    try {
+      await account.get(); // Tenta obter dados do usuário
+      return true; // Se funcionou, tem sessão ativa
+    } catch (e) {
+      return false; // Se falhou, não tem sessão válida
+    }
+  }
 
 }

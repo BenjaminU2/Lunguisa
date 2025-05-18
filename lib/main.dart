@@ -20,16 +20,66 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/login',
+      home: FutureBuilder(
+        future: AppwriteClient.isSessionActive(),
+        builder: (context, snapshot) {
+          // Enquanto verifica, mostra uma tela de loading simples
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Se tem sessão, vai pra Home; senão, vai pro Login
+          if (snapshot.data == true) {
+            return FutureBuilder(
+              future: _getUserData(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState != ConnectionState.done) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return HomePage(
+                  client: AppwriteClient.client,
+                  userId: userSnapshot.data ?? '', // Usar ID obtido ou string vazia
+                );
+              },
+            );
+          } else {
+            return const LoginPage();
+          }
+        },
+      ),
       routes: {
         '/login': (context) => const LoginPage(),
         '/cadastro': (context) => const CadastroPage(),
         '/home': (context) {
-          // Você precisará passar os parâmetros necessários aqui
-          // ou usar um gerenciador de estado
-          return const Placeholder(); // Substitua pelo seu HomePage
+          return FutureBuilder(
+            future: _getUserData(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return HomePage(
+                client: AppwriteClient.client,
+                userId: snapshot.data ?? '',
+              );
+            },
+          );
         },
       },
     );
+  }
+
+  static Future<String> _getUserData() async {
+    try {
+      final user = await AppwriteClient.account.get();
+      return user.$id; // Retorna o ID do usuário
+    } catch (e) {
+      return ''; // Retorna string vazia em caso de erro
+    }
   }
 }
