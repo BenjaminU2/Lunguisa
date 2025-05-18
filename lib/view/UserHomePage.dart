@@ -4,6 +4,7 @@ import 'package:appwrite/models.dart' as models;
 import 'appwrite_cliente.dart';
 import 'LoginPage.dart';
 import 'ProfilePage.dart';
+import 'ListPage.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -19,7 +20,7 @@ class UserHomePage extends StatelessWidget {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginPage()),
-          (route) => false,
+              (route) => false,
         );
       }
     } catch (e) {
@@ -84,11 +85,12 @@ class UserHomePage extends StatelessWidget {
       backgroundColor: Colors.grey[100],
       body: Column(
         children: [
-          // Cabeçalho com nome do usuário
           FutureBuilder<models.User>(
             future: _getUser(),
             builder: (context, snapshot) {
               final nome = snapshot.hasData ? snapshot.data!.name : '';
+              final userId = snapshot.hasData ? snapshot.data!.$id : '';
+
               return Container(
                 height: 280,
                 width: double.infinity,
@@ -140,10 +142,9 @@ class UserHomePage extends StatelessWidget {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                  builder: (context) => const ProfilePage(userId: 'current'),
+                                    builder: (context) => ProfilePage(userId: userId),
                                   )
                               );
-
                             },
                           ),
                           IconButton(
@@ -159,30 +160,52 @@ class UserHomePage extends StatelessWidget {
             },
           ),
 
-          // Grid moderno com botões
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                children: [
-                  _gridButton(
-                    icon: Icons.report_problem,
-                    label: 'Reportar\nProblema',
-                    onTap: () {
-                      // Navegar para tela de reportar problema
-                    },
-                  ),
-                  _gridButton(
-                    icon: Icons.list, 
-                    label: 'Listar\nProblemas',
-                    onTap: () {
-                      // Navegar para tela de listar problemas
-                    },
-                  ),
-                ],
+              child: FutureBuilder<models.User>(
+                future: _getUser(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Erro: ${snapshot.error}'));
+                  }
+
+                  final userId = snapshot.data!.$id;
+
+                  return GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    children: [
+                      _gridButton(
+                        icon: Icons.report_problem,
+                        label: 'Reportar\nProblema',
+                        onTap: () {
+                          // Navegar para tela de reportar problema
+                        },
+                      ),
+                      _gridButton(
+                        icon: Icons.list,
+                        label: 'Listar\nProblemas',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ListPage(
+                                client: AppwriteClient.client,
+                                userId: userId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),

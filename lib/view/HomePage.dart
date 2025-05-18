@@ -16,19 +16,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final Databases _databases;
+  late final Storage _storage;
   late final Account _account;
   List<Map<String, dynamic>> _problems = [];
   bool _isLoading = true;
   bool _hasError = false;
   String _userName = '';
 
+  final Color appBarColor = const Color(0xFF089CFF);
+
   @override
   void initState() {
     super.initState();
     _databases = Databases(widget.client);
+    _storage = Storage(widget.client);
     _account = Account(widget.client);
     _loadUserData();
-    _fetchProblems();
+    _fetchUserProblems();
   }
 
   Future<void> _loadUserData() async {
@@ -38,16 +42,18 @@ class _HomePageState extends State<HomePage> {
         _userName = user.name;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao carregar dados do usuário: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar dados do usuário: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> _fetchProblems() async {
+  Future<void> _fetchUserProblems() async {
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -59,48 +65,147 @@ class _HomePageState extends State<HomePage> {
         collectionId: 'problems',
         queries: [
           Query.orderDesc('createdAt'),
-          Query.limit(20),
+          Query.equal('userId', widget.userId),
         ],
       );
 
+      final userProblems = await Future.wait(
+        response.documents.map((doc) async {
+          final data = doc.data;
+          if (data['imageId'] != null && data['imageId'].toString().isNotEmpty) {
+            try {
+              final imageUrl = _storage.getFilePreview(
+                bucketId: 'problems_images',
+                fileId: data['imageId'].toString(),
+              );
+              data['imageUrl'] = imageUrl.toString();
+            } catch (e) {
+              debugPrint('Erro ao carregar imagem: $e');
+              data['imageUrl'] = null;
+            }
+          } else {
+            data['imageUrl'] = null;
+          }
+          return data;
+        }),
+      );
+
       setState(() {
-        _problems = response.documents.map((doc) => doc.data).toList();
+        _problems = userProblems;
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Erro ao carregar problemas: $e');
       setState(() {
         _isLoading = false;
         _hasError = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao carregar problemas: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar seus problemas: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  void _navigateToReportProblem() {
-    Navigator.push(
+  Future<void> _navigateToReportProblem() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReportProblemPage(userId: widget.userId,userName: _userName,),
+        builder: (context) => ReportProblemPage(
+          userId: widget.userId,
+          userName: _userName,
+        ),
       ),
     );
+
+    if (result == true) {
+      await _fetchUserProblems();
+    }
   }
 
-  void _logout() async {
+  Future<void> _logout() async {
     try {
       await _account.deleteSession(sessionId: 'current');
-      Navigator.pushReplacementNamed(context, '/login');
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao sair: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao fazer logout: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _upvoteProblem(String problemId) async {
+    try {
+      final document = await _databases.getDocument(
+        databaseId: '68209b44001669c8bdba',
+        collectionId: 'problems',
+        documentId: problemId,
       );
+
+      int currentUpvotes = document.data['upvotes'] ?? 0;
+
+      await _databases.updateDocument(
+        databaseId: '68209b44001669c8bdba',
+        collectionId: 'problems',
+        documentId: problemId,
+        data: {
+          'upvotes': currentUpvotes + 1,
+        },
+      );
+
+      setState(() {
+        _problems = _problems.map((problem) {
+          if (problem['\$id'] == problemId) {
+            problem['upvotes'] = (problem['upvotes'] ?? 0) + 1;
+          }
+          return problem;
+        }).toList();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Voto registrado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erro ao votar: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao votar: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  IconData _getProblemIcon(String? category) {
+    switch (category) {
+      case 'Iluminação':
+        return Icons.lightbulb;
+      case 'Buraco':
+        return Icons.warning;
+      case 'Limpeza':
+        return Icons.clean_hands;
+      case 'Segurança':
+        return Icons.security;
+      default:
+        return Icons.report_problem;
     }
   }
 
@@ -114,222 +219,163 @@ class _HomePageState extends State<HomePage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (problem['imageUrl'] != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                problem['imageUrl'],
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                          SizedBox(height: 8),
+                          Text('Imagem não disponível', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  _getProblemIcon(problem['category']),
-                  color: Colors.green,
+                Row(
+                  children: [
+                    Icon(
+                      _getProblemIcon(problem['category']),
+                      color: appBarColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      problem['title'] ?? 'Sem título',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 8),
                 Text(
-                  problem['title'] ?? 'Sem título',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  problem['description'] ?? 'Sem descrição',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.thumb_up),
+                      onPressed: () => _upvoteProblem(problem['\$id']),
+                      color: appBarColor,
+                    ),
+                    Text('${problem['upvotes'] ?? 0}'),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              problem['description'] ?? 'Sem descrição',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  problem['location'] ?? 'Local desconhecido',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.person, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  problem['userName'] ?? 'Anônimo',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const Spacer(),
-                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.thumb_up),
-                  onPressed: () => _upvoteProblem(problem['\$id']),
-                  color: Colors.green,
-                ),
-                Text('${problem['upvotes'] ?? 0}'),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.comment),
-                  onPressed: () {},
-                  color: Colors.green,
-                ),
-                Text('${problem['comments'] ?? 0}'),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Future<void> _upvoteProblem(String problemId) async {
-    try {
-      final currentProblem = _problems.firstWhere((p) => p['\$id'] == problemId);
-      final currentUpvotes = currentProblem['upvotes'] ?? 0;
-
-      await _databases.updateDocument(
-        databaseId: 'default',
-        collectionId: 'problems',
-        documentId: problemId,
-        data: {
-          'upvotes': currentUpvotes + 1,
-        },
-      );
-
-      _fetchProblems(); // Atualiza a lista
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao votar: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  IconData _getProblemIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'buraco na via':
-        return Icons.construction;
-      case 'fios soltos':
-        return Icons.electrical_services;
-      case 'lixo não recolhido':
-        return Icons.delete;
-      case 'iluminação pública':
-        return Icons.lightbulb;
-      case 'vazamento de água':
-        return Icons.water_damage;
-      default:
-        return Icons.warning;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Problemas na Comunidade'),
-        backgroundColor: Colors.green,
+        title: const Text('Meus Problemas Reportados'),
+        backgroundColor: appBarColor,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,
-            tooltip: 'Sair',
           ),
         ],
       ),
-      body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToReportProblem,
-        backgroundColor: Colors.green,
         child: const Icon(Icons.add),
+        backgroundColor: appBarColor,
       ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error, color: Colors.red, size: 50),
-            const SizedBox(height: 16),
-            const Text('Erro ao carregar problemas'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchProblems,
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_problems.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+      body: RefreshIndicator(
+        onRefresh: _fetchUserProblems,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _hasError
+            ? Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.thumb_up, size: 60, color: Colors.green),
-              const SizedBox(height: 20),
-              const Text(
-                'Nenhum problema reportado ainda!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              const Icon(Icons.error, color: Colors.red, size: 48),
               const SizedBox(height: 16),
-              const Text(
-                'Seja o primeiro a contribuir para uma cidade melhor!',
-                style: TextStyle(fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 30),
+              const Text('Erro ao carregar problemas'),
+              const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _navigateToReportProblem,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                ),
-                child: const Text(
-                  'Reportar Problema',
-                  style: TextStyle(color: Colors.white),
-                ),
+                onPressed: _fetchUserProblems,
+                child: const Text('Tentar novamente'),
               ),
             ],
           ),
+        )
+            : _problems.isEmpty
+            ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.info, color: Colors.blue, size: 48),
+              const SizedBox(height: 16),
+              const Text('Você ainda não reportou nenhum problema'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _navigateToReportProblem,
+                child: const Text('Reportar um problema'),
+              ),
+            ],
+          ),
+        )
+            : ListView.builder(
+          itemCount: _problems.length,
+          itemBuilder: (context, index) {
+            return _buildProblemCard(_problems[index]);
+          },
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _fetchProblems,
-      child: ListView.builder(
-        itemCount: _problems.length,
-        itemBuilder: (context, index) {
-          return _buildProblemCard(_problems[index]);
-        },
       ),
     );
   }
