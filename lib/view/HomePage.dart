@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           if (data['imageId'] != null && data['imageId'].toString().isNotEmpty) {
             try {
               final imageUrl = _storage.getFilePreview(
-                bucketId: 'problems_images',
+                bucketId: 'problem_images',
                 fileId: data['imageId'].toString(),
               );
               data['imageUrl'] = imageUrl.toString();

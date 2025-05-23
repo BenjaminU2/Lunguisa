@@ -1,227 +1,229 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:cross_file/cross_file.dart';
-import 'dart:io';
 import 'appwrite_cliente.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geocoding/geocoding.dart' as geo;
 import 'dart:async';
+import 'dart:typed_data';
+
+
 
 
 class ReportProblemPage extends StatefulWidget {
   final String userId;
   final String userName;
-  bool _isGettingLocation = false;
 
-  ReportProblemPage({
-    Key? key, // Alterado de super.key para Key? key
+  const ReportProblemPage({
+    Key? key,
     required this.userId,
     required this.userName,
   }) : super(key: key);
 
   @override
-  State<ReportProblemPage> createState() => _ReportProblemPageState();
+  _ReportProblemPageState createState() => _ReportProblemPageState();
 }
 
 class _ReportProblemPageState extends State<ReportProblemPage> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _locationController = TextEditingController();
-  String _category = 'Buraco na via';
-  File? _imageFile; // Para mobile
-  XFile? _pickedFile; // Para web e mobile
-  bool _isLoading = false;
-  bool _isGettingLocation = false;
-
-  final List<String> _categories = [
-    'Buraco na via',
-    'Fios soltos',
-    'Lixo não recolhido',
-    'Iluminação pública',
-    'Vazamento de água',
+  final List<String> _problemTypes = [
+    'Iluminação',
+    'Buraco',
+    'Limpeza',
+    'Segurança',
     'Outro'
   ];
-  Future<void> _getCurrentLocation() async {
-    if (_isGettingLocation) return;
 
-    setState(() => _isGettingLocation = true);
+  String? _selectedProblemType;
+  String _description = '';
+  bool _addPhoto = false;
+  bool _getLocation = false;
+  bool _isLoading = false;
+  Uint8List? _imageBytes;
+  Position? _currentPosition;
+  String? _locationAddress;
 
+  final Databases _databases = Databases(AppwriteClient.client);
+  final Storage _storage = Storage(AppwriteClient.client);
+
+  Future<void> _pickImage() async {
     try {
-      // Verifica se o serviço de localização está ativo
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+      );
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _imageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao capturar imagem: $e')),
+      );
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLoading = true);
+    try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw Exception('Por favor, ative o GPS no seu dispositivo');
+        throw Exception('Serviço de localização desativado');
       }
 
-      // Verifica permissões
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Permissão de localização negada');
+          throw Exception('Permissão negada');
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Permissão permanentemente negada. Ative nas configurações do aplicativo');
-      }
+      _currentPosition = await Geolocator.getCurrentPosition();
 
-      // Obtém a posição com timeout
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      ).timeout(const Duration(seconds: 15));
-
-      // Converte para endereço com tratamento de nulos
-      if (position != null) {
-        List<geo.Placemark> placemarks = await geo.placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        ).catchError((e) {
-          throw Exception('Falha ao converter coordenadas em endereço');
-        });
-
-        String address = 'Coordenadas: ${position.latitude.toStringAsFixed(4)}, '
-            '${position.longitude.toStringAsFixed(4)}';
-
-        if (placemarks != null && placemarks.isNotEmpty) {
-          geo.Placemark place = placemarks.first;
-          address = [
-            place.street,
-            place.subLocality,
-            place.locality,
-            place.postalCode
-          ].where((part) => part != null && part.isNotEmpty).join(', ');
-        }
-
-        setState(() => _locationController.text = address);
-      }
-    } on TimeoutException {
-      throw Exception('Tempo excedido ao obter localização');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: ${e.toString().replaceFirst('Exception: ', '')}'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isGettingLocation = false);
-      }
-    }
-  }
-
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+      // You could add reverse geocoding here to get address if needed
       setState(() {
-        _pickedFile = pickedFile;
-        if (!kIsWeb) {
-          _imageFile = File(pickedFile.path);
-        }
+        _locationAddress = '${_currentPosition?.latitude.toStringAsFixed(4)}, '
+            '${_currentPosition?.longitude.toStringAsFixed(4)}';
       });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao obter localização: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _submitProblem() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedProblemType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um tipo de problema')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      String? imageUrl;
-
-      if (_pickedFile != null) {
-        final storage = AppwriteClient.storage;
-
-        if (kIsWeb) {
-          final bytes = await _pickedFile!.readAsBytes();
-          final response = await storage.createFile(
-            bucketId: 'problem_images',
-            fileId: ID.unique(),
-            file: InputFile.fromBytes(
-              bytes: bytes,
-              filename: _pickedFile!.name,
-            ),
-          );
-          imageUrl = storage.getFileView(
-            bucketId: 'problem_images',
-            fileId: response.$id,
-          ).toString();
-        } else {
-          final response = await storage.createFile(
-            bucketId: 'problem_images',
-            fileId: ID.unique(),
-            file: InputFile.fromPath(
-              path: _imageFile!.path,
-            ),
-          );
-          imageUrl = storage.getFileView(
-            bucketId: 'problem_images',
-            fileId: response.$id,
-          ).toString();
-        }
+      String? imageId;
+      // Upload image if exists
+      if (_imageBytes != null) {
+        final imageFile = InputFile.fromBytes(
+          bytes: _imageBytes!,
+          filename: 'problem_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        final uploadedFile = await _storage.createFile(
+          bucketId: 'problem_images',
+          fileId: ID.unique(),
+          file: imageFile,
+        );
+        imageId = uploadedFile.$id;
       }
 
-      await AppwriteClient.databases.createDocument(
+      // Save problem to database
+      await _databases.createDocument(
         databaseId: '68209b44001669c8bdba',
         collectionId: 'problems',
         documentId: ID.unique(),
         data: {
-          'title': _titleController.text,
-          'description': _descriptionController.text,
-          'location': _locationController.text,
-          'category': _category,
+          'description': _description,
+          'category': _selectedProblemType,
+          'imageUrl': imageId,
+          'status': 'pendente',
           'userId': widget.userId,
           'userName': widget.userName,
-          'imageUrl': imageUrl,
-          'upvotes': 0,
-
-          'status': 'pendente',
           'createdAt': DateTime.now().toIso8601String(),
+          'location': _currentPosition != null
+              ? '${_currentPosition!.latitude},${_currentPosition!.longitude}'
+              : '', // ou coloque um valor padrão se preferir
         },
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Problema reportado com sucesso!')),
-        );
-        Navigator.pop(context);
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Problema reportado com sucesso!')),
+      );
+      Navigator.pop(context, true); // Return true to indicate success
+    } on AppwriteException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao reportar problema: ${e.message}')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao reportar problema: ${e.toString()}')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro desconhecido: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _locationController.dispose();
-    super.dispose();
+  Widget _buildImagePreview() {
+    if (_imageBytes == null) {
+      return Container(
+        height: 150,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: Icon(Icons.photo_camera, size: 50, color: Colors.grey),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.memory(
+        _imageBytes!,
+        height: 150,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildLocationInfo() {
+    if (_currentPosition == null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Localização não obtida',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.green),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Localização obtida:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(_locationAddress ?? ''),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reportar Problema'),
-        backgroundColor: Colors.green,
+        title: const Text('Reportar Problema Urbano'),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1565C0),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -229,119 +231,165 @@ class _ReportProblemPageState extends State<ReportProblemPage> {
           key: _formKey,
           child: Column(
             children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green),
-                  ),
-                  child: _pickedFile == null
-                      ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.camera_alt, size: 50, color: Colors.green),
-                      SizedBox(height: 8),
-                      Text('Adicionar foto do problema'),
+              // Seção: Foto
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(color: Color(0xFF1565C0)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        title: const Text(
+                          'Adicionar Foto',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                        value: _addPhoto,
+                        onChanged: (value) {
+                          setState(() => _addPhoto = value!);
+                          if (value!) _pickImage();
+                        },
+                        activeColor: const Color(0xFF1565C0),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      if (_addPhoto) ...[
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.camera_alt, color: Colors.white),
+                          label: const Text('Tirar Foto', style: TextStyle(color: Colors.white)),
+                          onPressed: _pickImage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildImagePreview(),
+                      ],
                     ],
-                  )
-                      : kIsWeb
-                      ? Image.network(_pickedFile!.path, fit: BoxFit.cover)
-                      : Image.file(File(_pickedFile!.path), fit: BoxFit.cover),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
-            TextFormField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: 'Localização',
-                prefixIcon: const Icon(Icons.location_on, color: Colors.green),
-                suffixIcon: IconButton(
-                  icon: _isGettingLocation
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : const Icon(Icons.my_location, color: Colors.green),
-                  onPressed: _getCurrentLocation,
-                  tooltip: 'Usar minha localização atual',
-                ),
-                border: const OutlineInputBorder(),
-              ),
-              readOnly: true,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, obtenha a localização automática ou insira manualmente';
-                }
-                return null;
-              },
-            ),
-              const SizedBox(height: 16),
+
+              // Seção: Tipo de Problema
               DropdownButtonFormField<String>(
-                value: _category,
-                items: _categories.map((String value) {
+                value: _selectedProblemType,
+                items: _problemTypes.map((type) {
                   return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+                    value: type,
+                    child: Text(type),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _category = value!;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  prefixIcon: Icon(Icons.category, color: Colors.green),
+                onChanged: (value) => setState(() => _selectedProblemType = value),
+                decoration: InputDecoration(
+                  labelText: 'Tipo de Problema',
+                  prefixIcon: const Icon(Icons.category, color: Color(0xFF1565C0)),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  hintText: 'Selecione o tipo de problema',
+                ),
+                validator: (value) => value == null ? 'Selecione um tipo' : null,
+              ),
+              const SizedBox(height: 20),
+
+              // Seção: Localização
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(color: Color(0xFF1565C0)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        title: const Text(
+                          'Incluir Localização Atual',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                        value: _getLocation,
+                        onChanged: (value) {
+                          setState(() => _getLocation = value!);
+                          if (value!) _getCurrentLocation();
+                        },
+                        activeColor: const Color(0xFF1565C0),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      if (_getLocation) ...[
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.location_on, color: Colors.white),
+                          label: const Text('Obter Localização', style: TextStyle(color: Colors.white)),
+                          onPressed: _getCurrentLocation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildLocationInfo(),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              // Seção: Descrição
               TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Localização',
-                  prefixIcon: Icon(Icons.location_on, color: Colors.green),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, informe a localização';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
                 maxLines: 4,
                 decoration: const InputDecoration(
                   labelText: 'Descrição detalhada',
                   alignLabelWithHint: true,
-                  prefixIcon: Icon(Icons.description, color: Colors.green),
+                  prefixIcon: Icon(Icons.description, color: Color(0xFF1565C0)),
+                  border: OutlineInputBorder(),
+                  hintText: 'Descreva o problema detalhadamente',
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, descreva o problema';
-                  }
-                  return null;
-                },
+                validator: (value) => value?.isEmpty ?? true ? 'Digite uma descrição' : null,
+                onChanged: (value) => _description = value,
               ),
               const SizedBox(height: 24),
+
+              // Botão de Envio
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submitProblem,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF1565C0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Reportar Problema', style: TextStyle(fontSize: 18)),
+                      : const Text(
+                    'REPORTAR PROBLEMA',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
