@@ -5,6 +5,7 @@ import 'appwrite_cliente.dart';
 import 'LoginPage.dart';
 import 'ProfilePage.dart';
 import 'ListPage.dart';
+import 'ReportProblemPage.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -185,9 +186,13 @@ class UserHomePage extends StatelessWidget {
                         icon: Icons.report_problem,
                         label: 'Reportar\nProblema',
                         onTap: () {
-                          // Navegar para tela de reportar problema
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ReportProblemPage(userId: 'userId', userName: 'userNAme',)),
+                          );
                         },
                       ),
+
                       _gridButton(
                         icon: Icons.list,
                         label: 'Listar\nProblemas',
