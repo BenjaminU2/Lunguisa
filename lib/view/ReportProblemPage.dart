@@ -6,9 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
-
-
-
 class ReportProblemPage extends StatefulWidget {
   final String userId;
   final String userName;
@@ -82,7 +79,6 @@ class _ReportProblemPageState extends State<ReportProblemPage> {
 
       _currentPosition = await Geolocator.getCurrentPosition();
 
-      // You could add reverse geocoding here to get address if needed
       setState(() {
         _locationAddress = '${_currentPosition?.latitude.toStringAsFixed(4)}, '
             '${_currentPosition?.longitude.toStringAsFixed(4)}';
@@ -108,8 +104,58 @@ class _ReportProblemPageState extends State<ReportProblemPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Verificação de problema já existente na mesma categoria e área
+      final existing = await _databases.listDocuments(
+        databaseId: '68209b44001669c8bdba',
+        collectionId: 'problems',
+        queries: [
+          Query.equal('category', _selectedProblemType!),
+          Query.equal('status', 'pendente'),
+        ],
+      );
+
+      bool isDuplicate = false;
+      const double maxDistanceMeters = 100; // distância máxima para considerar "mesma área"
+
+      for (final doc in existing.documents) {
+        final String existingCategory = doc.data['category'] ?? '';
+        final String location = doc.data['location'] ?? '';
+
+        if (existingCategory == _selectedProblemType && _currentPosition != null && location.contains(',')) {
+          final parts = location.split(',');
+          if (parts.length == 2) {
+            final double? lat = double.tryParse(parts[0]);
+            final double? lng = double.tryParse(parts[1]);
+            if (lat == null || lng == null) continue;
+
+            final distance = Geolocator.distanceBetween(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+              lat,
+              lng,
+            );
+
+            if (distance <= maxDistanceMeters) {
+              isDuplicate = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (isDuplicate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Esse problema já foi reportado nessa área.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Upload de imagem se existir
       String? imageId;
-      // Upload image if exists
       if (_imageBytes != null) {
         final imageFile = InputFile.fromBytes(
           bytes: _imageBytes!,
@@ -123,7 +169,7 @@ class _ReportProblemPageState extends State<ReportProblemPage> {
         imageId = uploadedFile.$id;
       }
 
-      // Save problem to database
+      // Salvar no banco
       await _databases.createDocument(
         databaseId: '68209b44001669c8bdba',
         collectionId: 'problems',
@@ -138,14 +184,14 @@ class _ReportProblemPageState extends State<ReportProblemPage> {
           'createdAt': DateTime.now().toIso8601String(),
           'location': _currentPosition != null
               ? '${_currentPosition!.latitude},${_currentPosition!.longitude}'
-              : '', // ou coloque um valor padrão se preferir
+              : '',
         },
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Problema reportado com sucesso!')),
       );
-      Navigator.pop(context, true); // Return true to indicate success
+      Navigator.pop(context, true);
     } on AppwriteException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao reportar problema: ${e.message}')),
