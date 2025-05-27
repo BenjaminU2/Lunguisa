@@ -3,6 +3,7 @@ import 'view/appwrite_cliente.dart';
 import 'view/CadastroPage.dart';
 import 'view/LoginPage.dart';
 import 'view/HomePage.dart';
+import 'view/WelcomePage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
               },
             );
           } else {
-            return const LoginPage();
+            return const WelcomePage();
           }
         },
       ),
