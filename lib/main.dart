@@ -4,6 +4,8 @@ import 'view/CadastroPage.dart';
 import 'view/LoginPage.dart';
 import 'view/HomePage.dart';
 import 'view/WelcomePage.dart';
+import 'view/ListPage.dart';
+import 'view/admin_problems_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -41,7 +43,7 @@ class MyApp extends StatelessWidget {
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
-                return HomePage(
+                return ListPage(
                   client: AppwriteClient.client,
                   userId: userSnapshot.data ?? '', // Usar ID obtido ou string vazia
                 );
@@ -54,6 +56,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/login': (context) => const LoginPage(),
+        //'/admin': (context) => const AdminProblemsPage(),
         '/cadastro': (context) => const CadastroPage(),
         '/home': (context) {
           return FutureBuilder(
@@ -64,7 +67,7 @@ class MyApp extends StatelessWidget {
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              return HomePage(
+              return ListPage(
                 client: AppwriteClient.client,
                 userId: snapshot.data ?? '',
               );

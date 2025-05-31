@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_cliente.dart';
-import 'HomePage.dart';
 import 'CadastroPage.dart';
 import 'UserHomePage.dart';
+import 'admin_problems_page.dart'; // Importe a tela de admin
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,34 +19,53 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Credenciais do admin
+  static const String adminEmail = 'benjie@gmail.com';
+  static const String adminPassword = 'Benjie123';
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Método correto para login com e-mail/senha
-      final response = await AppwriteClient.account.createEmailPasswordSession(
-        email: _emailController.text,
+      // Login via Appwrite (mesmo para admin)
+      await AppwriteClient.account.createEmailPasswordSession(
+        email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // Obtém os dados do usuário
-      // Obtém os dados do usuário
+      // Pega os dados do usuário logado
       final user = await AppwriteClient.account.get();
 
-      // Navega para a UserHomePage
+      // Verifica se é admin pelo e-mail
+      final isAdmin = user.email == adminEmail;
+
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserHomePage()),
-        );
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminProblemsPage(
+                user: user, // Passe o usuário se precisar
+                databases: Databases(AppwriteClient.client),
+                databaseId: '68209b44001669c8bdba',
+                collectionId: 'problems',
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserHomePage()),
+          );
+        }
       }
     } on AppwriteException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro no login: ${e.message}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro no login: ${e.message}')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -55,12 +74,12 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+
+  // O resto do seu código de build permanece o mesmo...
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,7 +126,6 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _emailController,
                       decoration: const InputDecoration(
                         labelText: 'Email',
-                        //hintText: 'Ex: joao@email.com',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email, color: Colors.blue),
                       ),
@@ -137,9 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                             color: Colors.blue,
                           ),
                           onPressed: () {
-                            setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            );
+                            setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
                       ),
@@ -162,19 +178,16 @@ class _LoginPageState extends State<LoginPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[800],
                         ),
-                        child:
-                            _isLoading
-                                ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                                : const Text(
-                                  'ENTRAR',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                          'ENTRAR',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),

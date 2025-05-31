@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'appwrite_cliente.dart';
-import 'HomePage.dart';
-import 'UserHomePage.dart';
+import 'ListPage.dart';
+
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -79,7 +79,7 @@ class _CadastroPageState extends State<CadastroPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(
+            builder: (context) => ListPage(
               client: AppwriteClient.client,
               userId: user.$id,
             ),

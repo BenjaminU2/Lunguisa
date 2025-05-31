@@ -1,4 +1,6 @@
 import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart' as models;
+
 
 class AppwriteClient {
   static final Client _client = Client()
@@ -17,5 +19,7 @@ class AppwriteClient {
       return false; // Se falhou, não tem sessão válida
     }
   }
-
+  static Future<bool> isAdmin(String email) async {
+    return email == 'benjie@gmail.com'; // Email do admin
+  }
 }
