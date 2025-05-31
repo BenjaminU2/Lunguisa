@@ -46,13 +46,10 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => AdminProblemsPage(
-                user: user, // Passe o usuário se precisar
-                databases: Databases(AppwriteClient.client),
-                databaseId: '68209b44001669c8bdba',
-                collectionId: 'problems',
-              ),
+              builder: (_) => AllProblemsPage(client: AppwriteClient.client),
             ),
+
+
           );
         } else {
           Navigator.pushReplacement(

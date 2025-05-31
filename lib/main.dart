@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'view/appwrite_cliente.dart';
 import 'view/CadastroPage.dart';
 import 'view/LoginPage.dart';
-import 'view/HomePage.dart';
+//import 'view/HomePage.dart';
 import 'view/WelcomePage.dart';
 import 'view/ListPage.dart';
 import 'view/admin_problems_page.dart';
