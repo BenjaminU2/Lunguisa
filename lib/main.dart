@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'view/appwrite_cliente.dart';
 import 'view/CadastroPage.dart';
 import 'view/LoginPage.dart';
-import 'view/HomePage.dart';
+import 'view/UserHomePage.dart';
 import 'view/WelcomePage.dart';
 
 void main() {
@@ -41,9 +41,8 @@ class MyApp extends StatelessWidget {
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
-                return HomePage(
-                  client: AppwriteClient.client,
-                  userId: userSnapshot.data ?? '', // Usar ID obtido ou string vazia
+                return UserHomePage(
+
                 );
               },
             );
@@ -64,9 +63,8 @@ class MyApp extends StatelessWidget {
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              return HomePage(
-                client: AppwriteClient.client,
-                userId: snapshot.data ?? '',
+              return UserHomePage(
+
               );
             },
           );
