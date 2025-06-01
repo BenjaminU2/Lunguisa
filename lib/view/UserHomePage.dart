@@ -7,7 +7,8 @@ import 'LoginPage.dart';
 import 'ProfilePage.dart';
 import 'ListPage.dart';
 import 'ReportProblemPage.dart';
-import 'NotificationPage.dart'; // Importação adicionada
+import 'NotificationPage.dart';
+import 'AboutPage.dart'; // <-- Importação adicionada
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -95,7 +96,7 @@ class UserHomePage extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.transparent,
               ),
               accountName: Text(user.name),
@@ -156,6 +157,17 @@ class UserHomePage extends StatelessWidget {
                       userId: user.$id,
                     ),
                   ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info, color: Colors.white),
+              title: const Text('Sobre nós', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutPage()),
                 );
               },
             ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart' as models;
 import 'LoginPage.dart';
 import 'appwrite_cliente.dart';
-
 
 class AllProblemsPage extends StatefulWidget {
   final Client client;
@@ -93,14 +93,12 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
           data['status'] = data['status'] ?? 'Pendente';
           data['location'] = data['location'] ?? 'Localização desconhecida';
           data['userName'] = data['userName'] ?? 'Desconhecido';
-
-          // Aqui está o ponto potencialmente com erro — esta linha está correta:
+          data['userId'] = data['userId'] ?? ''; // Garante que o campo exista
           data['\$id'] = doc.$id;
 
           return data;
         }),
       );
-
 
       if (mounted) {
         setState(() {
@@ -163,19 +161,23 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
 
       setState(() {
         problem['status'] = newStatus;
-        _databases.createDocument(
+      });
+
+      if (newStatus == 'Resolvido') {
+        final DateTime createdAt = DateTime.parse(problem['createdAt']);
+        final String formattedDate = DateFormat('dd/MM/yyyy').format(createdAt);
+
+        await _databases.createDocument(
           databaseId: '68209b44001669c8bdba',
-          collectionId: '683c04f70004ab80652e', // substitui com o ID correto
+          collectionId: 'notifications',
           documentId: ID.unique(),
           data: {
-            'userId': problem['userId'], // Certifica-te que tens esse campo em cada problema
-            'message': 'O status do seu problema foi atualizado para "$newStatus".',
-            'timestamp': DateTime.now().toIso8601String(),
-            'read': false,
+            'userId': problem['userId'],
+            'message': 'O problema que cadastrou no dia $formattedDate, do tipo ${problem['category']}, foi resolvido com sucesso.',
+            'createdAt': DateTime.now().toIso8601String(),
           },
         );
-
-      });
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao atualizar status: $e')),
@@ -285,6 +287,7 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
       ),
     );
   }
+
   Future<void> _logout(BuildContext context) async {
     try {
       await AppwriteClient.account.deleteSession(sessionId: 'current');
@@ -303,6 +306,7 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
       }
     }
   }
+
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -432,8 +436,7 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
             ),
           ],
         ),
-     ),
+      ),
     );
   }
-
 }
