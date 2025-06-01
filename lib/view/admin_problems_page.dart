@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart';
+import 'LoginPage.dart';
+import 'appwrite_cliente.dart';
+
 
 class AllProblemsPage extends StatefulWidget {
   final Client client;
@@ -161,6 +163,18 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
 
       setState(() {
         problem['status'] = newStatus;
+        _databases.createDocument(
+          databaseId: '68209b44001669c8bdba',
+          collectionId: '683c04f70004ab80652e', // substitui com o ID correto
+          documentId: ID.unique(),
+          data: {
+            'userId': problem['userId'], // Certifica-te que tens esse campo em cada problema
+            'message': 'O status do seu problema foi atualizado para "$newStatus".',
+            'timestamp': DateTime.now().toIso8601String(),
+            'read': false,
+          },
+        );
+
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -271,7 +285,24 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
       ),
     );
   }
-
+  Future<void> _logout(BuildContext context) async {
+    try {
+      await AppwriteClient.account.deleteSession(sessionId: 'current');
+      if (context.mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao sair: ${e.toString()}')),
+        );
+      }
+    }
+  }
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -297,7 +328,7 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => _logout(context),
           ),
         ],
       ),
@@ -401,7 +432,8 @@ class _AllProblemsPageState extends State<AllProblemsPage> {
             ),
           ],
         ),
-      ),
+     ),
     );
   }
+
 }
